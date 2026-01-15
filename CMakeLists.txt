@@ -32,6 +32,12 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(lfu_test lfu_test.cpp)
+target_compile_options(lfu_test
+  PRIVATE
+    -g
+    -Wall
+    -Wextra
+)
 target_link_libraries(lfu_test
     PRIVATE
         GTest::gtest_main)
