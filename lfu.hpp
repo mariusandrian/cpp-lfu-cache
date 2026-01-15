@@ -5,8 +5,8 @@
 template <typename K, typename V>
 struct Node
 {
-    int freq;
-    K key; // When evicting, minFreq -> back of list -> key -> remove from keyMap.
+    int freq; // when accessing direct from keyMap, it is self-aware on what freq it is.
+    K key;    // when evicting, minFreq -> back of list -> key -> remove from keyMap.
     V value;
 };
 
@@ -22,7 +22,6 @@ public:
         {
             if (size_ == capacity_)
             {
-                // evict
                 K &keyToBeEvicted = freqToList_[minFreq_].back().key;
                 keyToIt_.erase(keyToBeEvicted);
                 freqToList_[minFreq_].pop_back();
@@ -37,13 +36,7 @@ public:
         else
         {
             auto it = keyToIt_.find(key);
-            freq_type curFreq = it->second->freq;
-            freqToList_[curFreq + 1].emplace_front(curFreq, key, value);
-            freqToList_[curFreq].erase(it->second);
-            if (curFreq == minFreq_ && freqToList_[curFreq].empty())
-                ++minFreq_;
-
-            keyToIt_[key] = freqToList_[curFreq + 1].begin();
+            incrNodeFrequency(key, value, it->second);
         }
     }
 
@@ -54,14 +47,7 @@ public:
         {
             throw std::out_of_range("key not found");
         }
-        freq_type curFreq = it->second->freq;
-        V value = it->second->value;
-        freqToList_[curFreq + 1].emplace_front(curFreq + 1, key, value);
-        freqToList_[curFreq].erase(it->second);
-        if (curFreq == minFreq_ && freqToList_[curFreq].empty())
-            ++minFreq_;
-
-        keyToIt_[key] = freqToList_[curFreq + 1].begin();
+        incrNodeFrequency(it->second->key, it->second->value, it->second);
 
         return keyToIt_.at(key)->value;
     }
@@ -75,4 +61,15 @@ private:
     freq_type minFreq_{};
     const int capacity_;
     int size_{};
+
+    void incrNodeFrequency(K key, V value, list_type::iterator it)
+    {
+        int curFreq = it->freq;
+        freqToList_[curFreq + 1].emplace_front(curFreq + 1, key, value);
+        freqToList_[curFreq].erase(it);
+        if (curFreq == minFreq_ && freqToList_[curFreq].empty())
+            ++minFreq_;
+
+        keyToIt_[key] = freqToList_[curFreq + 1].begin();
+    }
 };
